@@ -1,25 +1,30 @@
 import socket
-
+from des_cli import DES
 
 def client_program():
-    host = socket.gethostname()  # as both code is running on same pc
-    port = 5000  # socket server port number
+    des = DES()
+    host = socket.gethostname()
+    port = 5000
 
-    client_socket = socket.socket()  # instantiate
-    client_socket.connect((host, port))  # connect to the server
+    client_socket = socket.socket()
+    client_socket.connect((host, port))
 
-    message = input(" -> ")  # take input
+    key = des.generate_des_key()
+    print(f"Generated DES Key: {key}")
+
+    message = input(" -> ")
 
     while message.lower().strip() != 'bye':
-        client_socket.send(message.encode())  # send message
-        data = client_socket.recv(1024).decode()  # receive response
+        encrypted_message = des.encrypt(message, key)
+        client_socket.send(encrypted_message.encode('utf-8'))
 
-        print('Received from server: ' + data)  # show in terminal
+        data = client_socket.recv(1024).decode('utf-8')
+        decrypted_message = des.decrypt(data, key)
 
-        message = input(" -> ")  # again take input
+        print('Received from server: ' + decrypted_message)
+        message = input(" -> ")
 
-    client_socket.close()  # close the connection
-
+    client_socket.close()
 
 if __name__ == '__main__':
     client_program()
