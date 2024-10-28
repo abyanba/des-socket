@@ -9,20 +9,29 @@ def client_program():
     client_socket = socket.socket()
     client_socket.connect((host, port))
 
+    # Hasilkan dan kirim kunci ke server
     key = des.generate_des_key()
     print(f"Generated DES Key: {key}")
+    client_socket.send(key.encode('utf-8'))
 
-    message = input(" -> ")
+    while True:
+        message = input("Enter message to send (type 'bye' to exit): ")
+        if message.lower().strip() == 'bye':
+            break
 
-    while message.lower().strip() != 'bye':
-        encrypted_message = des.encrypt(message, key)
+        # Enkripsi pesan sebelum dikirim
+        encrypted_message = des.encrypt(message, key=key)
+        print(f"Original Message: {message}")
+        print(f"Encrypted Message: {encrypted_message}")
+
+        # Kirim pesan terenkripsi ke server
         client_socket.send(encrypted_message.encode('utf-8'))
 
+        # Terima respons dari server dan dekripsi
         data = client_socket.recv(1024).decode('utf-8')
-        decrypted_message = des.decrypt(data, key)
-
-        print('Received from server: ' + decrypted_message)
-        message = input(" -> ")
+        decrypted_message = des.decrypt(data, key=key)
+        print(f"Received Encrypted Response: {data}")
+        print(f"Decrypted Response: {decrypted_message}")
 
     client_socket.close()
 

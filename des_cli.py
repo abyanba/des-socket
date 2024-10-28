@@ -20,17 +20,37 @@ class BinString(str):
             result = result[1:] + result[0]
         return BinString(result)
 
-class BinasciiConverter:
-    @staticmethod
-    def to_bin(s):
-        string = binascii.hexlify(s.encode('utf-8')).decode('utf-8')
-        bits = ''.join(bin(int(char, 16))[2:].zfill(4) for char in string)
+class StringConverter(object):
+    @classmethod
+    def to_bin(cls, s, hexstring=False):
+        string = cls.to_hex(s) if not hexstring else s
+        bits = ''
+        for char in string:
+            bits += bin(int(char, 16))[2:].zfill(4)
+        while len(bits) % 64 != 0:
+            bits += '0'
         return BinString(bits)
 
+    @classmethod
+    def from_bin(cls, s):
+        hex_str = ''
+        for i in range(0, len(s), 4):
+            hex_str += hex(int(s[i:i+4], 2))[2:].zfill(1)
+        return hex_str
+
     @staticmethod
-    def from_bin(s):
-        hex_str = ''.join(hex(int(s[i:i+4], 2))[2:] for i in range(0, len(s), 4))
-        return binascii.unhexlify(hex_str).decode('utf-8')
+    def from_hex(input_):
+        # Do not decode to UTF-8, just return the hex representation
+        return input_  # Return as is without decoding
+
+class BinasciiConverter(StringConverter):
+    @staticmethod
+    def to_hex(input_):
+        return binascii.hexlify(str(input_).encode('utf-8')).decode('utf-8')
+
+    @staticmethod
+    def from_hex(input_):
+        return binascii.unhexlify(input_).decode('utf-8')
 
 class DES:
     PC_1 = [
@@ -166,7 +186,6 @@ class DES:
         33, 1, 41, 9, 49, 17, 57, 25,
     ]
 
-    # Fungsi untuk menghasilkan kunci DES
     @staticmethod
     def generate_des_key():
         key = []
@@ -176,20 +195,68 @@ class DES:
             key.append((byte << 1) | parity_bit)
         return ''.join(f'{byte:02X}' for byte in key)
 
-    def __init__(self, converter=BinasciiConverter):
+    def __init__(self, converter=BinasciiConverter, **kwargs):
         self.converter = converter
+        if kwargs.get('key'):
+            self._set_key(kwargs['key'], kwargs.get('hexkey', False))
+    
+    def _set_key(self, key, hexkey=False):
+        self.key = self.converter.to_bin(key, hexkey)
 
+    def _permute_with(self, string, permutation):
+        return ''.join([string[i-1] for i in permutation])
+    
     def _group_by(self, string, by):
         return [string[i:i+by] for i in range(0, len(string), by)]
+    
+    def f(self, r, k):
+        e = BinString(self._permute_with(r, self.E))
+        k_xor_e = BinString(k) ^ e
+        S = ''
+        blocks = self._group_by(k_xor_e, 6)
+        for n in range(8):
+            i = int(blocks[n][0] + blocks[n][-1], 2)
+            j = int(blocks[n][1:-1], 2)
+            S += bin(self.S[n][i][j])[2:].zfill(4)
+        return BinString(self._permute_with(S, self.P))
 
-    def encrypt(self, string, key):
-        self.key = self.converter.to_bin(key)
-        self.message = self.converter.to_bin(string)
+    def encrypt(self, string, **kwargs):
+        self._set_key(kwargs['key'], kwargs.get('hexkey', False))
+        self.message = self.converter.to_bin(string, kwargs.get('hexstring', False))
+
+        # Pad message
+        while len(self.message) % 64 != 0:
+            self.message += '0'
+
+        pc1_key = self._permute_with(self.key, self.PC_1)
+        C = [BinString(pc1_key[:28])]
+        D = [BinString(pc1_key[28:])]
+
+        for i in range(16):
+            shift = 1 if i in (0, 1, 8, 15) else 2
+            C.append(C[-1] << shift)
+            D.append(D[-1] << shift)
+
+        K = []
+        for i in range(16):
+            CD = C[i+1] + D[i+1]
+            K.append(self._permute_with(CD, self.PC_2))
+        
         result = ''
         for block in self._group_by(self.message, 64):
-            # Encryption process placeholder, using permutations and rounds
-            result += block  # This should be replaced by actual encryption logic
+            PI = self._permute_with(block, self.PI)
+            L = [BinString(PI[:32])]
+            R = [BinString(PI[32:])]
+            for i in range(16):
+                Ln = R[-1]
+                Rn = L[-1] ^ self.f(R[-1], K[i])
+                L.append(Ln)
+                R.append(Rn)
+            RL = R[-1] + L[-1]
+            result += self._permute_with(RL, self.PI_1)
+
         return self.converter.from_bin(result)
 
-    def decrypt(self, string, key):
-        return self.encrypt(string, key)  # Simple placeholder, should use actual decryption logic
+    def decrypt(self, string, key, hexkey=False):
+        # Menggunakan fungsi encrypt dengan argumen yang diperlukan
+        return self.encrypt(string, key=key, hexkey=hexkey, decrypt=True)

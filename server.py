@@ -12,19 +12,25 @@ def server_program():
     conn, address = server_socket.accept()
     print("Connection from: " + str(address))
 
-    key = des.generate_des_key()
-    print(f"Generated DES Key: {key}")
+    # Menerima kunci dari klien
+    key = conn.recv(1024).decode('utf-8')
+    print(f"Received DES Key from client: {key}")
 
     while True:
+        # Terima pesan terenkripsi dari klien
         encrypted_data = conn.recv(1024).decode('utf-8')
         if not encrypted_data:
             break
 
-        decrypted_data = des.decrypt(encrypted_data, key)
-        print("from connected user: " + str(decrypted_data))
+        # Dekripsi pesan yang diterima
+        decrypted_data = des.decrypt(encrypted_data, key=key)
+        print(f"Received Encrypted Message: {encrypted_data}")
+        print(f"Decrypted Message: {decrypted_data}")
 
-        response = input(' -> ')
-        encrypted_response = des.encrypt(response, key)
+        # Ambil input respons dari server, enkripsi, dan kirim kembali ke klien
+        response = input("Enter response to send: ")
+        encrypted_response = des.encrypt(response, key=key)
+        print(f"Encrypted Response: {encrypted_response}")
         conn.send(encrypted_response.encode('utf-8'))
 
     conn.close()
