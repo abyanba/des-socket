@@ -1,9 +1,11 @@
 import socket
-from des_cli import encryption_large_text, decryption_large_text, generate_random_key
+from des_cli import encryption_large_text, decryption_large_text
 
 def server_program():
     host = socket.gethostname()
     port = 5000
+    encryption = encryption_large_text
+    decryption = decryption_large_text
 
     server_socket = socket.socket()
     server_socket.bind((host, port))
@@ -24,19 +26,19 @@ def server_program():
             break
 
         # Deskripsi pesan
-        decrypted_data = decryption_large_text(encrypted_data, key)
+        decrypted_data = decryption(encrypted_data, key)
         print("Received Encrypted Message:", encrypted_data)
         print("Decrypted Message:", decrypted_data)
 
         # Kirim pesan balik
         response = input("Server Response: ")
         if response.lower() == "bye":
-            encrypted_response = encryption_large_text(response, key)
+            encrypted_response = encryption(response, key)
             conn.send(encrypted_response.encode())
             print("Encrypted Response:", encrypted_response)
             break
 
-        encrypted_response = encryption_large_text(response, key)
+        encrypted_response = encryption(response, key)
         conn.send(encrypted_response.encode())
         print("Encrypted Response:", encrypted_response)
 

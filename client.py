@@ -6,9 +6,13 @@ def client_program():
     port = 5000
     client_socket = socket.socket()
     client_socket.connect((host, port))
+    encryption = encryption_large_text
+    decryption = decryption_large_text
+    randomkey = generate_random_key
+
 
     # Generate dan kirimkan key ke server
-    key = generate_random_key()
+    key = randomkey()
     client_socket.send(key.encode())
     print("Generated Key sent to Server:", key)
 
@@ -16,13 +20,13 @@ def client_program():
         # Ambil input dari user
         message = input("Client Message: ")
         if message.lower() == "bye":
-            encrypted_message = encryption_large_text(message, key)
+            encrypted_message = encryption(message, key)
             client_socket.send(encrypted_message.encode())
             print("Encrypted Message:", encrypted_message)
             break
 
         # Enkripsi pesan sebelum dikirim
-        encrypted_message = encryption_large_text(message, key)
+        encrypted_message = encryption(message, key)
         client_socket.send(encrypted_message.encode())
         print("Message:", message)
         print("Encrypted Message:", encrypted_message)
@@ -33,7 +37,7 @@ def client_program():
             print("Server ended the chat. Closing connection.")
             break
 
-        decrypted_response = decryption_large_text(encrypted_response, key)
+        decrypted_response = decryption(encrypted_response, key)
         print("Received Encrypted Response:", encrypted_response)
         print("Decrypted Response:", decrypted_response)
 
