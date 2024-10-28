@@ -1,8 +1,7 @@
 import socket
-from des_cli import DES
+from des_cli import encryption_large_text, decryption_large_text, generate_random_key
 
 def server_program():
-    des = DES()
     host = socket.gethostname()
     port = 5000
 
@@ -10,28 +9,36 @@ def server_program():
     server_socket.bind((host, port))
     server_socket.listen(2)
     conn, address = server_socket.accept()
-    print("Connection from: " + str(address))
+    print("Connection from:", address)
 
-    # Menerima kunci dari klien
-    key = conn.recv(1024).decode('utf-8')
-    print(f"Received DES Key from client: {key}")
+    # Receive and store the key sent from the client
+    key = conn.recv(1024).decode()
+    print("Received Key from Client:", key)
 
     while True:
         # Terima pesan terenkripsi dari klien
-        encrypted_data = conn.recv(1024).decode('utf-8')
-        if not encrypted_data:
+        encrypted_data = conn.recv(1024).decode()
+        if encrypted_data.lower() == "bye":
+            print("Client ended the chat. Closing connection.")
+            conn.send("bye".encode())  # Notify client to close
             break
 
-        # Dekripsi pesan yang diterima
-        decrypted_data = des.decrypt(encrypted_data, key=key)
-        print(f"Received Encrypted Message: {encrypted_data}")
-        print(f"Decrypted Message: {decrypted_data}")
+        # Deskripsi pesan
+        decrypted_data = decryption_large_text(encrypted_data, key)
+        print("Received Encrypted Message:", encrypted_data)
+        print("Decrypted Message:", decrypted_data)
 
-        # Ambil input respons dari server, enkripsi, dan kirim kembali ke klien
-        response = input("Enter response to send: ")
-        encrypted_response = des.encrypt(response, key=key)
-        print(f"Encrypted Response: {encrypted_response}")
-        conn.send(encrypted_response.encode('utf-8'))
+        # Kirim pesan balik
+        response = input("Server Response: ")
+        if response.lower() == "bye":
+            encrypted_response = encryption_large_text(response, key)
+            conn.send(encrypted_response.encode())
+            print("Encrypted Response:", encrypted_response)
+            break
+
+        encrypted_response = encryption_large_text(response, key)
+        conn.send(encrypted_response.encode())
+        print("Encrypted Response:", encrypted_response)
 
     conn.close()
 

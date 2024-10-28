@@ -1,37 +1,41 @@
 import socket
-from des_cli import DES
+from des_cli import encryption_large_text, decryption_large_text, generate_random_key
 
 def client_program():
-    des = DES()
     host = socket.gethostname()
     port = 5000
-
     client_socket = socket.socket()
     client_socket.connect((host, port))
 
-    # Hasilkan dan kirim kunci ke server
-    key = des.generate_des_key()
-    print(f"Generated DES Key: {key}")
-    client_socket.send(key.encode('utf-8'))
+    # Generate dan kirimkan key ke server
+    key = generate_random_key()
+    client_socket.send(key.encode())
+    print("Generated Key sent to Server:", key)
 
     while True:
-        message = input("Enter message to send (type 'bye' to exit): ")
-        if message.lower().strip() == 'bye':
+        # Ambil input dari user
+        message = input("Client Message: ")
+        if message.lower() == "bye":
+            encrypted_message = encryption_large_text(message, key)
+            client_socket.send(encrypted_message.encode())
+            print("Encrypted Message:", encrypted_message)
             break
 
         # Enkripsi pesan sebelum dikirim
-        encrypted_message = des.encrypt(message, key=key)
-        print(f"Original Message: {message}")
-        print(f"Encrypted Message: {encrypted_message}")
+        encrypted_message = encryption_large_text(message, key)
+        client_socket.send(encrypted_message.encode())
+        print("Message:", message)
+        print("Encrypted Message:", encrypted_message)
 
-        # Kirim pesan terenkripsi ke server
-        client_socket.send(encrypted_message.encode('utf-8'))
+        # Terima respons terenkripsi dari server
+        encrypted_response = client_socket.recv(1024).decode()
+        if encrypted_response.lower() == "bye":
+            print("Server ended the chat. Closing connection.")
+            break
 
-        # Terima respons dari server dan dekripsi
-        data = client_socket.recv(1024).decode('utf-8')
-        decrypted_message = des.decrypt(data, key=key)
-        print(f"Received Encrypted Response: {data}")
-        print(f"Decrypted Response: {decrypted_message}")
+        decrypted_response = decryption_large_text(encrypted_response, key)
+        print("Received Encrypted Response:", encrypted_response)
+        print("Decrypted Response:", decrypted_response)
 
     client_socket.close()
 
