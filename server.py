@@ -1,33 +1,47 @@
-import socket
-from des import decryption  # Import fungsi dekripsi DES
+import socket 
+import threading
 
-# Key disepakati (hardcoded)
-key = "12345678abcdefgh"  
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind(('localhost', 8080))
+s.listen(5)
 
-def server_program():
-    host = socket.gethostname()
-    port = 5000
+clients = []
+aliases = []
 
-    server_socket = socket.socket()
-    server_socket.bind((host, port))
-    server_socket.listen(2)
-    conn, address = server_socket.accept()
-    print("Connection from:", address)
+def broadcast(message):
+    for client in clients: 
+        client.send(message)
 
+def handle_client(client):
     while True:
-        encrypted_message = conn.recv(1024).decode()
-        if not encrypted_message:
-            break
-        
-        print(f"Received Encrypted Message: {encrypted_message}")
-        # Dekripsi pesan yang diterima
-        decrypted_message = decryption(encrypted_message, key)
-        print(f"Decrypted Message: {decrypted_message}")
+        try: 
+            message = client.recv(1024)
+            broadcast(message)
+        except:
+            index = clients.index(client)
+            clients.remove(client)
+            client.close()
+            alias = aliases[index]
+            broadcast('{} has left chat room'.format(alias).encode('utf-8'))
+            aliases.remove(alias)
+            break 
 
-        # Kirim pesan asli kembali ke client
-        conn.send(decrypted_message.encode())
+# Main function to receive client connection 
+def receive():
+    while True:
+        print('Server is running and listening...')
+        client, address = s.accept()
+        print('connection is established with {0}'.format(str(address)))
+        client.send('alias?'.encode('utf-8'))
+        alias = client.recv(1024)
+        aliases.append(alias)
+        clients.append(client)
+        print('The alias of this client is {0}'.format(alias).encode('utf-8'))
+        broadcast('{} has connected to the chatroom'.format(alias).encode('utf-8'))
+        client.send('you are now connected!'.encode('utf-8'))
 
-    conn.close()
+        thread = threading.Thread(target=handle_client, args=(client,))
+        thread.start()
 
 if __name__ == '__main__':
-    server_program()
+    receive()
