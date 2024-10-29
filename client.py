@@ -19,10 +19,7 @@ def client_program():
     while True:
         # Ambil input dari user
         message = input("Client Message: ")
-        if message.lower() == "bye":
-            encrypted_message = encryption(message, key)
-            client_socket.send(encrypted_message.encode())
-            print("Encrypted Message:", encrypted_message)
+        if message.lower().strip() == "bye":
             break
 
         # Enkripsi pesan sebelum dikirim
@@ -33,8 +30,7 @@ def client_program():
 
         # Terima respons terenkripsi dari server
         encrypted_response = client_socket.recv(1024).decode()
-        if encrypted_response.lower() == "bye":
-            print("Server ended the chat. Closing connection.")
+        if not encrypted_response:
             break
 
         decrypted_response = decryption(encrypted_response, key)

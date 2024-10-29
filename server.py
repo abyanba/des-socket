@@ -20,9 +20,7 @@ def server_program():
     while True:
         # Terima pesan terenkripsi dari klien
         encrypted_data = conn.recv(1024).decode()
-        if encrypted_data.lower() == "bye":
-            print("Client ended the chat. Closing connection.")
-            conn.send("bye".encode())  # Notify client to close
+        if not encrypted_data:
             break
 
         # Deskripsi pesan
@@ -32,12 +30,8 @@ def server_program():
 
         # Kirim pesan balik
         response = input("Server Response: ")
-        if response.lower() == "bye":
-            encrypted_response = encryption(response, key)
-            conn.send(encrypted_response.encode())
-            print("Encrypted Response:", encrypted_response)
+        if response.lower().strip() == "bye":
             break
-
         encrypted_response = encryption(response, key)
         conn.send(encrypted_response.encode())
         print("Encrypted Response:", encrypted_response)
