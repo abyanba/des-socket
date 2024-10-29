@@ -10,13 +10,12 @@ def client_program():
     decryption = decryption_large_text
     randomkey = generate_random_key
 
-
-    # Generate dan kirimkan key ke server
-    key = randomkey()
-    client_socket.send(key.encode())
-    print("Generated Key sent to Server:", key)
-
     while True:
+        # Generate dan kirimkan key ke server
+        key = randomkey()
+        client_socket.send(key.encode())
+        print("Generated Key sent to Server:", key)
+        
         # Ambil input dari user
         message = input("Client Message: ")
         if message.lower().strip() == "bye":
