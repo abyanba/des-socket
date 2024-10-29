@@ -17,7 +17,7 @@ def server_program():
         # Receive and store the key sent from the client
         key = conn.recv(1024).decode()
         print("Received Key from Client:", key)
-
+        
         # Terima pesan terenkripsi dari klien
         encrypted_data = conn.recv(1024).decode()
         if not encrypted_data:
